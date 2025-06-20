@@ -1,7 +1,5 @@
-#main.py
-
 import streamlit as st
-from openai import OpenAI
+import openai
 
 # 페이지 설정
 st.set_page_config(
@@ -11,8 +9,10 @@ st.set_page_config(
 
 st.title("🏃‍♂️ 증상별 체조 챗봇")
 
-# API 키 입력
-api_key = st.text_input("OpenAI API Key를 입력하세요:", type="password")
+# API 키 입력 (환경 변수 우선 사용)
+api_key = st.secrets.get("OPENAI_API_KEY", "")
+if not api_key:
+    api_key = st.text_input("OpenAI API Key를 입력하세요:", type="password")
 
 if api_key:
     # 증상 입력
@@ -21,12 +21,12 @@ if api_key:
     if st.button("체조 추천받기"):
         if symptom:
             try:
-                # OpenAI 클라이언트 초기화
-                client = OpenAI(api_key=api_key)
+                # OpenAI API 키 설정
+                openai.api_key = api_key
                 
                 # ChatGPT API 호출
-                response = client.chat.completions.create(
-                    model="gpt-4o",
+                response = openai.ChatCompletion.create(
+                    model="gpt-4",
                     messages=[
                         {"role": "system", "content": "너는 물리치료사이자 체조 전문가야. 사용자의 증상에 맞는 안전한 체조를 3-5가지 추천해줘. 각 체조마다 방법과 횟수, 주의사항을 포함해서 한국어로 친근하게 설명해줘."},
                         {"role": "user", "content": symptom}
