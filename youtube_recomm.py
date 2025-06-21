@@ -1,4 +1,4 @@
-import streamlit as st
+chimport streamlit as st
 import openai
 
 # 페이지 설정
@@ -150,7 +150,7 @@ if st.button("🎯 맞춤 채널 추천받기", type="primary", use_container_wi
 """
                 
                 response = openai.ChatCompletion.create(
-                    model="gpt-3.5-turbo",
+                    model="gpt-4o",
                     messages=[
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": full_query}
