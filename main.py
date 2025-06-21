@@ -1,5 +1,6 @@
 import streamlit as st
 import openai
+import os
 
 # 페이지 설정
 st.set_page_config(
@@ -17,10 +18,50 @@ st.markdown("---")
 with st.sidebar:
     st.title("⚙️ 설정")
     
-    # API 키 입력 (환경 변수 우선 사용)
-    api_key = st.secrets.get("OPENAI_API_KEY", "")
-    if not api_key:
-        api_key = st.text_input("OpenAI API Key:", type="password", help="OpenAI API 키를 입력하세요")
+    # API 키 입력 섹션 개선
+    st.markdown("#### 🔑 OpenAI API 키")
+    
+    # 환경 변수에서 API 키 확인
+    api_key_from_env = os.getenv("OPENAI_API_KEY") or st.secrets.get("OPENAI_API_KEY", "")
+    
+    if api_key_from_env:
+        st.success("✅ API 키가 환경변수에서 로드되었습니다")
+        api_key = api_key_from_env
+        st.markdown("🔒 보안을 위해 키가 숨겨져 있습니다")
+    else:
+        st.info("🔑 OpenAI API 키를 입력해주세요")
+        api_key = st.text_input(
+            "API Key:", 
+            type="password", 
+            placeholder="sk-...",
+            help="OpenAI 웹사이트에서 발급받은 API 키를 입력하세요"
+        )
+        
+        if api_key:
+            if api_key.startswith('sk-') and len(api_key) > 20:
+                st.success("✅ API 키 형식이 올바릅니다")
+            else:
+                st.warning("⚠️ API 키 형식을 확인해주세요 (sk-로 시작)")
+    
+    # API 키 도움말
+    with st.expander("❓ API 키 발급 방법"):
+        st.markdown("""
+        **OpenAI API 키 발급 단계:**
+        
+        1. [OpenAI 웹사이트](https://platform.openai.com) 접속
+        2. 회원가입 또는 로그인
+        3. API Keys 메뉴로 이동
+        4. "Create new secret key" 클릭
+        5. 생성된 키를 복사하여 입력
+        
+        **💰 요금 정보:**
+        - GPT-3.5-turbo: $0.002/1K tokens
+        - 첫 사용 시 무료 크레딧 제공
+        
+        **🔒 보안 주의사항:**
+        - API 키를 다른 사람과 공유하지 마세요
+        - 사용하지 않을 때는 키를 비활성화하세요
+        """)
     
     st.markdown("---")
     st.title("🎯 빠른 증상 선택")
@@ -46,6 +87,10 @@ with st.sidebar:
     if st.button("🔍 선택한 증상으로 검색", type="primary"):
         if selected_symptom != "직접 입력하기":
             st.session_state.selected_symptom = selected_symptom
+
+# API 키 상태 확인 및 경고 표시
+if not api_key:
+    st.warning("⚠️ 체조 추천을 받으려면 먼저 OpenAI API 키를 입력해주세요. 왼쪽 사이드바를 확인하세요!")
 
 # 메인 콘텐츠 영역
 col1, col2 = st.columns([2, 1])
@@ -84,11 +129,17 @@ with col2:
     • 체조 중 통증이 심해지면 중단
     • 꾸준한 실천이 중요합니다
     """)
+    
+    # API 상태 표시
+    if api_key:
+        st.success("🔑 API 키 연결됨")
+    else:
+        st.error("🔑 API 키 필요")
 
 # 체조 추천 버튼
 if st.button("🎯 맞춤 체조 추천받기", type="primary", use_container_width=True):
     if not api_key:
-        st.error("⚠️ OpenAI API 키를 먼저 입력해주세요!")
+        st.error("⚠️ OpenAI API 키를 먼저 입력해주세요! 사이드바에서 설정할 수 있습니다.")
     elif not symptom.strip():
         st.warning("⚠️ 증상을 입력해주세요!")
     else:
@@ -202,8 +253,14 @@ if st.button("🎯 맞춤 체조 추천받기", type="primary", use_container_wi
                     if st.button("💾 기록 저장"):
                         st.success("기록이 저장되었습니다! (세션 종료 시 삭제됩니다)")
                 
+        except openai.error.AuthenticationError:
+            st.error("❌ API 키 인증에 실패했습니다. 올바른 API 키를 입력했는지 확인해주세요.")
+        except openai.error.RateLimitError:
+            st.error("❌ API 사용량 한도를 초과했습니다. 잠시 후 다시 시도해주세요.")
+        except openai.error.APIError as e:
+            st.error(f"❌ OpenAI API 오류가 발생했습니다: {str(e)}")
         except Exception as e:
-            st.error(f"❌ 오류가 발생했습니다: {str(e)}")
+            st.error(f"❌ 예상치 못한 오류가 발생했습니다: {str(e)}")
             st.info("💡 API 키가 올바른지 확인하고 다시 시도해주세요.")
 
 # 하단 정보
